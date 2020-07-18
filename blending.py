@@ -4,7 +4,7 @@ import numpy as np
 
 
 # naive resolution
-def naive_array(source_ini, mask_ini, target_ini, dim_ini):
+def naive_image(source_ini, mask_ini, target_ini, dim_ini):
     source = source_ini.copy()
     mask = mask_ini.copy()
     target = target_ini.copy()

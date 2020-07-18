@@ -10,11 +10,6 @@ def poisson_blending(image, dim,  mix):
 
     # comparison function
     _compare = lambda val1, val2: val1 if abs(val1) > abs(val2) else val2
-    # def _compare(val1, val2):
-    #     if(abs(val1) > abs(val2)):
-    #     return val1
-    #     else:
-    #     return val2
 
     # membrane (region where Poisson blending is performed)
     mask = image['mask']
@@ -71,7 +66,7 @@ def poisson_blending(image, dim,  mix):
                 Np_right_t = target_subimg[i]
             
             # choose stronger gradient
-            if not mix:
+            if not mix: # Si es falso no se considera a la función f* (que no es parte de función buscada) 
                 Np_up_t = 0
                 Np_left_t = 0
                 Np_down_t = 0
