@@ -124,7 +124,7 @@ def detect(save_img=False):
                         # plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
 
             # mpalacin: dibujar la conexion de las personas
-            distancing(people_coords, im0, dist_thres_lim=(90,170))#(200,250))#
+            distancing(people_coords, im0, distance = 1) #dist_thres_lim=(200,250))#(90,170))#
 
             # Print time (inference + NMS)
             print('%sDone. (%.3fs)' % (s, t2 - t1))

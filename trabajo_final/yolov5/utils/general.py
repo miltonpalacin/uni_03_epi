@@ -1289,44 +1289,52 @@ def plot_results(start=0, stop=0, bucket='', id=(), labels=(),
 # mpalacin: función para pintar (de color amarillo) el punto central en la persona
 def plot_dots_on_people(x, img):
     thickness = -1;
-    #color = [0, 255, 255] # amarillo
     color = [0, 255, 0] # verde
     center = ((int(x[2])+int(x[0]))//2,(int(x[3])+int(x[1]))//2)
-    radius = 10
+    radius = 6
     cv2.circle(img, center, radius, color, thickness)
 
 # mpalacin: función para dibujar las lineas de distanciamiento
-def distancing(people_coords, img, dist_thres_lim=(200,250)):
+def distancing(people_coords, img, distance = 1):
     already_red = dict() # Diccionario para guardar si ya se puso la etiqueta de "alto riesgo"
-    #centers = []
     l2 = []
-
+    total_people = len(people_coords)
+    total_h = 0
     for i in people_coords:
-        #centers.append(((int(i[2])+int(i[0]))//2,(int(i[3])+int(i[1]))//2))
         w = int(i[2])-int(i[0])
         h = int(i[3])-int(i[1])
+        total_h += h
         d = ((2 * 3.14 * 180) / (w + h * 360) * 1000 + 3)
-        l2.append([(int(i[2])+int(i[0]))//2,(int(i[3])+int(i[1]))//2, d, int(i[0]), int(i[1])])
-    #for j in centers:
-        #already_red[j] = 0
+        l2.append([(int(i[2])+int(i[0]))//2,(int(i[3])+int(i[1]))//2, d, int(i[0]), int(i[1]), h])
     for j in l2:
         already_red[(j[0], j[1])] = 0
-    #x_combs = list(itertools.combinations(people_coords,2))
+    
+    per_capacity = 0
+    
+    if total_people > 0:
+        mean_h = total_h /(total_people if total_people > 0 else 1)
+        min_lim = distance * mean_h / 1.6 # 1.6 promedio mundial
+        room_capacity = (img.shape[0] * img.shape[1] ) / ((mean_h + min_lim)**2)
+        per_capacity = total_people / room_capacity
+    
     x_combs = list(itertools.combinations(l2,2))
     total_combs = len(x_combs)
-    radius = 10
-    thickness = 5
+    total_low = 0
+    total_high = 0
+    radius = 6
+    thickness = 2
     for x in x_combs:
-        # xyxy1, xyxy2 = x[0], x[1]
-        # cntr1 = ((int(xyxy1[2])+int(xyxy1[0]))//2,(int(xyxy1[3])+int(xyxy1[1]))//2)
-        # cntr2 = ((int(xyxy2[2])+int(xyxy2[0]))//2,(int(xyxy2[3])+int(xyxy2[1]))//2)
-        # dist = ((cntr2[0] - cntr1[0])**2 + (cntr2[1] - cntr1[1])**2 + ())**0.5
         o1, o2 = x[0], x[1]
         cntr1 = (o1[0], o1[1])
         cntr2 = (o2[0], o2[1])
         dist = ((o2[0] - o1[0])**2 + (o2[1] - o1[1])**2 + (o2[2] - o1[2])**2)**0.5
 
+        min_lim = distance * ((o1[5] + o2[5])/2) / 1.6 # 1.6 promedio mundial, distance en metros y min_lim en pixeles
+        max_lim = min_lim * (1 + 0.5/ distance)
+        dist_thres_lim = (int(min_lim), int(max_lim))
+
         if dist > dist_thres_lim[0] and dist < dist_thres_lim[1]:
+            total_low += 1
             color = (0, 255, 255) # amarillo
             label = "Bajo" # Riesgo Bajo
             cv2.line(img, cntr1, cntr2, color, thickness)
@@ -1337,10 +1345,8 @@ def distancing(people_coords, img, dist_thres_lim=(200,250)):
             # Dibujar los cuadros de texto en las personas
             tl = round(0.002 * (img.shape[0] + img.shape[1]) / 4) + 1  # grosor de linea por font 
             for xy in x:
-                #cntr = ((int(xy[2])+int(xy[0]))//2,(int(xy[3])+int(xy[1]))//2)
                 cntr = (xy[0], xy[1])
                 if already_red[cntr] == 0:
-                    #c1, c2 = (int(xy[0]), int(xy[1])), (int(xy[2]), int(xy[3]))
                     c1 = (int(xy[3]), int(xy[4]))
                     tf = max(tl - 1, 1)  # grosor del font
                     t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
@@ -1350,17 +1356,17 @@ def distancing(people_coords, img, dist_thres_lim=(200,250)):
                     cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [0, 0, 0], thickness=tf, lineType=cv2.LINE_AA)
 
         elif dist < dist_thres_lim[0]:
+            total_high += 1
             color = (0, 0, 255) # Rojo
             label = "Alto" #Riesgo Alto
             already_red[cntr1] = 1
             already_red[cntr2] = 1
-            cv2.line(img, cntr1, cntr2, color, thickness)
+            cv2.line(img, cntr1, cntr2, color, thickness + 1)
             cv2.circle(img, cntr1, radius, color, -1)
             cv2.circle(img, cntr2, radius, color, -1)
             # Dibujar los cuadros de texto en las personas
             tl = round(0.002 * (img.shape[0] + img.shape[1]) / 4) + 1  # grosor de linea por font
             for xy in x:
-                #c1, c2 = (int(xy[0]), int(xy[1])), (int(xy[2]), int(xy[3]))
                 c1  = (int(xy[3]), int(xy[4]))
                 tf = max(tl - 1, 1)  # grosor font
                 t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
@@ -1373,13 +1379,22 @@ def distancing(people_coords, img, dist_thres_lim=(200,250)):
     h_img, w_img, _ = img.shape
     radius = int((w_img + h_img)/ 32)
     cir_center = (radius, h_img - radius)
-    cv2.circle(img, cir_center, radius - 2, (127,0,127), -1)
 
-    TEXT = "100%"
+    perc = (total_high + total_low/2)/(total_combs if total_combs > 0 else 1)
+    perc = per_capacity * perc
+    red = 255
+    green = 255
+    if perc <= 0.5:
+        red = int(perc * 2 * red)
+    else:
+        green = int((1 - (perc if perc <= 1 else 1)) * 2 * green)
+
+    violation_index =  str(int(100*perc)) + "%"
     tl = round(0.002 * (img.shape[0] + img.shape[1]) / 4) + 1 
     tf = max(tl - 1, 1)  # grosor del font
-    text_size, _ = cv2.getTextSize(TEXT, 0, fontScale=tl / 3, thickness=tf)
+    text_size, _ = cv2.getTextSize(violation_index, 0, fontScale=tl / 3, thickness=tf)
     text_origin = (int(cir_center[0] - text_size[0] / 2), int(cir_center[1] + text_size[1] / 2))
 
-    cv2.putText(img, TEXT, text_origin, 0, tl / 3, [0, 0, 0], thickness=tf, lineType=cv2.LINE_AA)
+    cv2.circle(img, cir_center, radius - 2, (0,green,red), -1)
+    cv2.putText(img, violation_index, text_origin, 0, tl / 3, [0, 0, 0], thickness=tf, lineType=cv2.LINE_AA)
     
