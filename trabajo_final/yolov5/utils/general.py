@@ -1333,7 +1333,7 @@ def distancing(people_coords, img, distance = 1):
         max_lim = min_lim * (1 + 0.5/ distance)
         dist_thres_lim = (int(min_lim), int(max_lim))
 
-        if dist >= dist_thres_lim[0] and dist =< dist_thres_lim[1]:
+        if dist >= dist_thres_lim[0] and dist <= dist_thres_lim[1]:
             total_low += 1
             color = (0, 255, 255) # amarillo
             label = "Bajo" # Riesgo Bajo
